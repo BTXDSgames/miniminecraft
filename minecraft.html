@@ -1,0 +1,153 @@
+from pathlib import Path
+
+html = """<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Mini Minecraft V3</title>
+<style>
+body{margin:0;text-align:center;font-family:sans-serif;background:#87ceeb;}
+canvas{border:2px solid black;background:#87ceeb;}
+</style>
+</head>
+<body>
+<h3>Mini Minecraft V3</h3>
+<p>A/D mover | Espacio saltar | Click izq romper | Click der poner</p>
+<canvas id="game" width="800" height="480"></canvas>
+
+<script>
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+const tile=32;
+const cols=25, rows=15;
+
+let world=[];
+for(let y=0;y<rows;y++){
+ world[y]=[];
+ for(let x=0;x<cols;x++) world[y][x]=(y>10)?1:0;
+}
+for(let x=4;x<10;x++) world[8][x]=1;
+for(let x=14;x<20;x++) world[6][x]=1;
+
+const p={x:80,y:100,w:24,h:30,vx:0,vy:0,onGround:false};
+let keys={};
+
+document.addEventListener("keydown",e=>keys[e.key]=true);
+document.addEventListener("keyup",e=>keys[e.key]=false);
+
+function solid(tx,ty){
+ if(tx<0||tx>=cols||ty<0||ty>=rows) return true;
+ return world[ty][tx]===1;
+}
+
+function update(){
+ p.vx=0;
+ if(keys["a"]||keys["ArrowLeft"]) p.vx=-4;
+ if(keys["d"]||keys["ArrowRight"]) p.vx=4;
+
+ if((keys[" "]||keys["ArrowUp"]) && p.onGround){
+   p.vy=-11;
+   p.onGround=false;
+ }
+
+ p.vy+=0.5;
+
+ let newX=p.x+p.vx;
+
+ if(p.vx>0){
+   let right=Math.floor((newX+p.w)/tile);
+   let top=Math.floor(p.y/tile);
+   let bottom=Math.floor((p.y+p.h-1)/tile);
+   let hit=false;
+   for(let y=top;y<=bottom;y++) if(solid(right,y)) hit=true;
+   if(!hit) p.x=newX;
+ }
+ else if(p.vx<0){
+   let left=Math.floor(newX/tile);
+   let top=Math.floor(p.y/tile);
+   let bottom=Math.floor((p.y+p.h-1)/tile);
+   let hit=false;
+   for(let y=top;y<=bottom;y++) if(solid(left,y)) hit=true;
+   if(!hit) p.x=newX;
+ }
+
+ let newY=p.y+p.vy;
+ p.onGround=false;
+
+ if(p.vy>0){
+   let bottom=Math.floor((newY+p.h)/tile);
+   let left=Math.floor(p.x/tile);
+   let right=Math.floor((p.x+p.w-1)/tile);
+   let hit=false;
+   for(let x=left;x<=right;x++) if(solid(x,bottom)) hit=true;
+   if(hit){
+      p.y=bottom*tile-p.h;
+      p.vy=0;
+      p.onGround=true;
+   } else p.y=newY;
+ }
+ else if(p.vy<0){
+   let top=Math.floor(newY/tile);
+   let left=Math.floor(p.x/tile);
+   let right=Math.floor((p.x+p.w-1)/tile);
+   let hit=false;
+   for(let x=left;x<=right;x++) if(solid(x,top)) hit=true;
+   if(hit){
+      p.vy=0;
+   } else p.y=newY;
+ }
+}
+
+canvas.addEventListener("click",e=>{
+ let r=canvas.getBoundingClientRect();
+ let tx=Math.floor((e.clientX-r.left)/tile);
+ let ty=Math.floor((e.clientY-r.top)/tile);
+ if(tx>=0&&tx<cols&&ty>=0&&ty<rows) world[ty][tx]=0;
+});
+
+canvas.addEventListener("contextmenu",e=>{
+ e.preventDefault();
+ let r=canvas.getBoundingClientRect();
+ let tx=Math.floor((e.clientX-r.left)/tile);
+ let ty=Math.floor((e.clientY-r.top)/tile);
+
+ let px=Math.floor((p.x+p.w/2)/tile);
+ let py=Math.floor((p.y+p.h/2)/tile);
+
+ if(Math.abs(tx-px)<=3 && Math.abs(ty-py)<=3){
+   if(!(tx===px && ty===py)) world[ty][tx]=1;
+ }
+});
+
+function draw(){
+ ctx.clearRect(0,0,800,480);
+
+ for(let y=0;y<rows;y++){
+  for(let x=0;x<cols;x++){
+   if(world[y][x]){
+    ctx.fillStyle="#8B5A2B";
+    ctx.fillRect(x*tile,y*tile,tile,tile);
+    ctx.fillStyle="#3CB043";
+    ctx.fillRect(x*tile,y*tile,tile,6);
+   }
+  }
+ }
+
+ ctx.fillStyle="red";
+ ctx.fillRect(p.x,p.y,p.w,p.h);
+}
+
+function loop(){
+ update();
+ draw();
+ requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>
+"""
+
+path="/mnt/data/mini_minecraft_v3.html"
+Path(path).write_text(html, encoding="utf-8")
+print(path)
